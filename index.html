@@ -1,0 +1,554 @@
+
+<!DOCTYPE html>
+
+
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JavaのORM、Domaの話 +α &mdash; JavaのORM、Domaの話 1.0 documentation</title>
+
+    
+
+    
+<link rel="stylesheet" href="_static/css/reveal.min.css">
+<link rel="stylesheet" href="_static/css/theme/default.css" id="theme">
+<link rel="stylesheet" href="_static/lib/css/zenburn.css">
+<link rel="stylesheet" href="_static/revealjs.css" type="text/css" />
+
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script>
+      document.write('<link rel="stylesheet" href="_static/css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="_static/lib/js/html5shiv.js"></script>
+    <![endif]-->
+
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        
+  <div class="section" id="javaormdoma">
+<h1>JavaのORM、Domaの話 +α<a class="headerlink" href="#javaormdoma" title="Permalink to this headline">¶</a></h1>
+<section>
+<h2>JavaのORM、Domaの話 +α</h2>
+<h3>@backpaper0</h3>
+</section>
+<section>
+<h2>@backpaper0とは</h2>
+<ul class="first last simple">
+<li>うらがみです。</li>
+<li>ｴｽｱｲﾔｰでｼﾞｬﾊﾞ使ってｳｪｯﾌﾞやってます。</li>
+<li>ｱﾝﾖﾖｲﾖも少しやってます。仕事で。</li>
+<li>Doma歴4年ぐらい。</li>
+</ul>
+</section>
+<section>
+<h2>+αの話から</h2>
+</section>
+<section>
+<h3>みなさんORM使っていますか？</h3>
+</section>
+<section>
+<h2>backpaper0が知ってるORM</h2>
+<ul class="first last simple">
+<li>JPA (EclipseLink, Hibernate)</li>
+<li>S2JDBC</li>
+<li>S2Dao</li>
+<li>ActiveObjects</li>
+<li>Iciql (JaQu)</li>
+<li>MyBatis (旧iBatis)</li>
+<li>Mirage</li>
+<li>Doma</li>
+</ul>
+</section>
+<section>
+<section class="first">
+<h2>JPA</h2>
+<ul class="first last simple">
+<li>Java EEに含まれるORMフレームワーク。</li>
+<li>オブジェクトとリレーションの柔軟なマッピング。</li>
+<li>JPQLでSQLの方言を吸収。</li>
+<li>生SQLも書ける。</li>
+<li>Criteria API + Metamodel API = 型安全なクエリ。
+ただしコード地獄になりがち。
+ていうかなる。
+クエリを再利用できるメリットある？</li>
+<li>少数精鋭向け？</li>
+<li>QueryDSLを併用すれば幸せになれる？</li>
+</ul>
+</section>
+<section>
+<h2>JPAのエンティティ</h2>
+<pre class="first last">
+<code data-trim contenteditable>@Entity
+public class Book {
+
+    @Id
+    public String isbn;
+
+    public String title;
+
+    ...</code></pre>
+</section>
+<section>
+<h2>JPAのクエリ</h2>
+<pre class="first last">
+<code data-trim contenteditable>Book book = em.createQuery("SELECT b.* FROM Book b WHERE b.isbn = :isbn", Book.class)
+              .setParameter("isbn", "978-4-488-10118-3")
+              .getSingleResult();</code></pre>
+</section>
+<section>
+<h2>Metamodel API</h2>
+<pre class="first last">
+<code data-trim contenteditable>@StaticMetamodel(Book.class)
+public class Book_ {
+
+    public static SingularAttribute< Book, String> isbn;
+
+    public static SingularAttribute< Book, String> title;
+
+    public static SingularAttribute< Book, String> author;
+}</code></pre>
+</section>
+<section class="last">
+<h2>Criteria API</h2>
+<pre class="first last">
+<code data-trim contenteditable>CriteriaBuilder builder = em.getCriteriaBuilder();
+CriteriaQuery< Book> criteria = builder.createQuery(Book.class);
+Root< Book> from = criteria.from(Book.class);
+criteria.select(from);
+criteria.where(builder.equal(from.get(Book_.isbn), "978-4-488-10118-3"));
+Book book = em.createQuery(criteria).getSingleResult();</code></pre>
+</section>
+</section>
+<section>
+<section class="first">
+<h2>S2JDBC</h2>
+<ul class="first last simple">
+<li>Seasar2に含まれるORM。</li>
+<li>JPAのアノテーションを利用する。</li>
+<li><cite>&#64;ManyToMany</cite> には対応していない。</li>
+<li>Namesクラスで型安全なクエリ。</li>
+<li>生SQLも書ける。</li>
+<li>Seasar2を利用しない場合、設定(というかJdbcManagerインスタンスのセットアップ)がめんどい。</li>
+<li>JTA必須っぽい。</li>
+</ul>
+</section>
+<section>
+<h2>S2JDBCのエンティティ</h2>
+<pre class="first last">
+<code data-trim contenteditable>@Entity
+public class Book {
+
+    @Id
+    public String isbn;
+
+    public String title;
+
+    ...</code></pre>
+</section>
+<section class="last">
+<h2>S2JDBCのクエリ</h2>
+<pre class="first last">
+<code data-trim contenteditable>Book book = jdbcManager.from(Book.class)
+                       .where(eq(isbn(), "978-4-488-10118-3"))
+                       .getSingleResult();</code></pre>
+</section>
+</section>
+<section>
+<section class="first last">
+<h2>S2Dao</h2>
+<ul class="first last simple">
+<li>Daoインターフェースを用意して実装は動的に生成する。</li>
+<li>Seasar2必須と思う。</li>
+<li>getBookByAuthorPublisherという風にメソッド名をもとにクエリを組み立てる。</li>
+<li>SQLファイルを使用したりアノテーションにクエリ書いたりもできるっぽい。</li>
+</ul>
+</section>
+</section>
+<section>
+<section class="first">
+<h2>ActiveObjects</h2>
+<ul class="first last simple">
+<li>エンティティはインターフェースでEntityインターフェースをextendsする。</li>
+<li>アクセサっぽいメソッドを定義する。</li>
+<li>ダイナミックプロキシで実装を生成している。</li>
+<li><strong>2009年頃から更新されていないプロジェクトなので使ってはいけない</strong></li>
+</ul>
+</section>
+<section>
+<h2>ActiveObjectsのエンティティ</h2>
+<pre class="first last">
+<code data-trim contenteditable>public interface Book extends Entity {
+
+    String getIsbn();
+
+    void setIsbn(String isbn);
+
+    ...</code></pre>
+</section>
+<section class="last">
+<h2>ActiveObjectsの永続化</h2>
+<pre class="first last">
+<code data-trim contenteditable>net.java.ao.EntityManager em = ...
+Book book = em.create(Book.class);
+book.setIsbn("978-4-488-10118-3");
+book.save();</code></pre>
+</section>
+</section>
+<section>
+<section class="first">
+<h2>Iciql</h2>
+<ul class="first last simple">
+<li>H2Databaseに付属のJaQuというORMが元になっている</li>
+<li>言葉では説明しづらい変わった方法でクエリを組み立てる</li>
+</ul>
+</section>
+<section>
+<h2>Iciqlのエンティティ</h2>
+<pre class="first last">
+<code data-trim contenteditable>public class Book {
+
+    @IQColumn(primaryKey = true)
+    public String isbn;
+
+    public String title;
+
+    ...</code></pre>
+</section>
+<section>
+<h2>Iciqlのクエリ</h2>
+<pre class="first last">
+<code data-trim contenteditable>Book b = new Book();
+Book book = db.from(b)
+              .where(b.isbn).is("978-4-488-10118-3")
+              .selectFirst();</code></pre>
+</section>
+<section>
+<h2>Iciqlで結合</h2>
+<pre class="first last">
+<code data-trim contenteditable>Book b = new Book();
+Author a = new Author();
+List< BookView> books = db.from(b)
+        .innerJoin(a)
+        .on(a.id).is(b.authorId)
+        .select(new BookView() {{
+            title = b.title;
+            author = a.name;
+        }});</code></pre>
+</section>
+<section class="last">
+<h2>Iciqlのもうひとつのクエリ</h2>
+<p class="first">whereメソッドに渡したFilterの匿名サブクラスのバイトコードを解析してクエリを組み立てる。</p>
+<pre class="last">
+<code data-trim contenteditable>List< Book> books = db.from(b).where(new Filter() {
+
+    @Override
+    public boolean where() {
+        return b.isbn.equals("978-4-488-10118-3");
+    }
+}).select();</code></pre>
+</section>
+</section>
+<section>
+<section class="first last">
+<h2>MyBatis</h2>
+<ul class="first last simple">
+<li>こざけさんが説明してくれるはず。</li>
+</ul>
+</section>
+</section>
+<section>
+<section class="first last">
+<h2>Mirage</h2>
+<ul class="first last simple">
+<li><a class="reference external" href="https://github.com/takezoe/gitbucket">GitBucket</a> の <a class="reference external" href="https://twitter.com/takezoen">&#64;takezoen</a> さんが作成されているORM。</li>
+<li>S2JDBCを手軽にした感じ？</li>
+<li>でもタイプセーフクエリは無い。</li>
+<li>mirage-scalaというのもある。</li>
+</ul>
+</section>
+</section>
+<section>
+<h2>Doma</h2>
+</section>
+<section>
+<h2>Domaとは</h2>
+<ul class="first last simple">
+<li>JavaのORM。</li>
+<li>Object ResultSet Mapper (※個人の感想です)。</li>
+<li><a class="reference external" href="https://www.jcp.org/en/jsr/detail?id=269">Pluggable Annotation Processing API</a> を使用している。</li>
+<li>その仕組み上、Scalaなど他の言語で書くことはできない。</li>
+<li>特定のアノテーションを付けたクラスやインターフェースをもとに補助クラスや実装クラスをコンパイル時にモリモリ生成</li>
+</ul>
+</section>
+<section>
+<h2>エンティティ</h2>
+<pre class="first last">
+<code data-trim contenteditable>@Entity
+public class Book {
+
+    @Id
+    public String isbn;
+
+    public String title;
+
+    public String author;
+
+    ...</code></pre>
+</section>
+<section>
+<h2>Daoインターフェース</h2>
+<pre class="first last">
+<code data-trim contenteditable>@Dao(config = MyConfig.class)
+public interface BookDao {
+
+    @Select
+    List< Book> select(String title, String author);</code></pre>
+</section>
+<section>
+<h2>SQLファイル</h2>
+<p class="first">META-INF/app/dao/BookDao/select.sql</p>
+<pre class="last">
+<code data-trim contenteditable>SELECT /*%expand*/*
+  FROM book
+ WHERE title = /* title */'x'
+   /*%if author != null */
+   AND author = /* author */'y'
+   /*%end*/</code></pre>
+</section>
+<section>
+<h2>コンパイル時に色々検出</h2>
+<ul class="first last simple">
+<li>&#64;Selectを付けたメソッドに対応するSQLファイルがないと <strong>コンパイルエラー</strong></li>
+<li>Daoクラスのメソッドに&#64;Selectや&#64;Insertなどのアノテーションが付いていないと <strong>コンパイルエラー</strong></li>
+<li>SQLファイルの中身が空っぽだと <strong>コンパイルエラー</strong></li>
+<li>メソッドの引数がSQLファイル内で使用されていないと <strong>コンパイルエラー</strong></li>
+<li>SQLファイル内の <cite>/*%if ...*/</cite> や <cite>/*%end*/</cite> が変な位置にあると <strong>コンパイルエラー</strong></li>
+</ul>
+</section>
+<section>
+<h2>ドメインクラス</h2>
+<p class="first">エンティティのフィールドやDaoのメソッドの引数、戻り値にStringなどの基本型ではなくてユーザー定義のクラスを利用できる仕組み。</p>
+<pre class="last">
+<code data-trim contenteditable>@Domain(valueType = String.class, factoryMethod = "of")
+public class Isbn {
+
+    private final String value;
+
+    private Isbn(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public static Isbn of(String value) {
+        return Optional.ofNullable(value).map(Isbn::new).orElse(null);
+    }
+}</code></pre>
+</section>
+<section>
+<h3>エンティティ + ドメインクラス</h3>
+<pre class="first last">
+<code data-trim contenteditable>@Entity
+public class Book {
+
+    @Id
+    public Isbn isbn;
+
+    public Title title;
+
+    public Author author;
+
+    ...</code></pre>
+</section>
+<section>
+<h3>Dao + ドメインクラス</h3>
+<pre class="first last">
+<code data-trim contenteditable>@Dao(config = MyConfig.class)
+public interface BookDao {
+
+    @Select
+    List< Book> select(Title title, Author author);
+
+    @Select
+    Title selectTitle(Isbn isbn);</code></pre>
+</section>
+<section>
+<h3>SQLファイル + ドメインクラス</h3>
+<p class="first">SQLファイルはドメインクラスを使用しない場合と何も変わらない。</p>
+<pre class="last">
+<code data-trim contenteditable>SELECT /*%expand*/*
+  FROM book
+ WHERE title = /* title */'x'
+   /*%if author != null */
+   AND author = /* author */'y'
+   /*%end*/</code></pre>
+</section>
+<section>
+<h3>ドメインクラスの有無を比較</h3>
+<pre class="first">
+<code data-trim contenteditable>@Select
+List< Book> select(Title title, Author author);
+
+@Select
+List< Book> select(String title, String author);</code></pre>
+<p class="last">ドメインクラスを使用していると <cite>dao.select(author, title)</cite> はコンパイルエラーになる。</p>
+</section>
+<section>
+<h3>ジェネリックなドメインクラス</h3>
+<p class="first">例えばサロゲートキーを表すドメインクラスがあったとする。</p>
+<pre class="last">
+<code data-trim contenteditable>@Domain(valueType = Long.class)
+public class SurrogateKey< T> {
+
+    private final Long value;
+
+    public SurrogateKey(Long value) {
+        this.value = value;
+    }
+
+    public Long getValue() {
+        return value;
+    }
+}</code></pre>
+</section>
+<section>
+<h3>ジェネリックなドメインクラス</h3>
+<p class="first">型変数にはエンティティをバインドする。</p>
+<pre>
+<code data-trim contenteditable>@Entity
+public class Book {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public SurrogateKey< Book> id;</code></pre>
+<pre>
+<code data-trim contenteditable>@Entity
+public class Author {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public SurrogateKey< Author> id;</code></pre>
+<pre class="last">
+<code data-trim contenteditable>author.id = book.id; //コンパイルエラー</code></pre>
+</section>
+<section>
+<h2>StreamやCollectorへの対応</h2>
+<pre class="first">
+<code data-trim contenteditable>@Select
+List< Book> select();
+
+@Select(strategy = SelectType.STREAM)
+< R> R select(Function< Stream< Book>, R> fn);
+
+@Select(strategy = SelectType.COLLECT)
+< R> R select(Collector< Book, ?, R> collector);</code></pre>
+<pre class="last">
+<code data-trim contenteditable>//タイトルをカンマ区切りで並べる
+String titleList = select(s -> s.map(book -> book.title).collect(Collectors.joining(", ")));</code></pre>
+</section>
+<section>
+<h2>Optionalへの対応</h2>
+<pre class="first">
+<code data-trim contenteditable>@Select
+Optional< String> selectTitle(Isbn isbn);
+
+@Select
+String selectTitle(Optional< Isbn> isbn);</code></pre>
+<p class="last">エンティティのフィールドにもOptionalは使える。</p>
+</section>
+<section>
+<h2>その他の機能</h2>
+<ul class="first last simple">
+<li>イミュータブルなエンティティ。</li>
+<li>エンティティ作成の支援ツールdoma-gen。
+テーブル定義からエンティティを生成する。<ul>
+<li>SQLファイルの実行結果からも生成できる？
+試してない。</li>
+</ul>
+</li>
+<li>ローカルトランザクション。</li>
+<li>外部ドメイン。
+既に存在しており変更できないクラスをドメインとして扱う。</li>
+<li>クエリビルダ。
+やむを得ず動的にSQLを組み立てるための補助的なクラス。</li>
+<li><a class="reference external" href="https://jcp.org/en/jsr/detail?id=310">Date and Time API</a> への対応。</li>
+</ul>
+</section>
+<section>
+<h2>公式ドキュメント</h2>
+<p class="first">Doma <a class="reference external" href="http://doma.readthedocs.org/">http://doma.readthedocs.org/</a></p>
+<p class="last">( Doma 1.x <a class="reference external" href="http://doma.seasar.org/">http://doma.seasar.org/</a> )</p>
+</section>
+<section>
+<h2>☃</h2>
+おわり。</section>
+</div>
+
+
+      </div>
+    </div>
+    
+<script src="_static/js/jquery.min.js"></script>
+<script src="_static/lib/js/head.min.js"></script>
+<script src="_static/js/reveal.js"></script>
+    <script>
+
+      // change DOM for reveal.js
+      $("div.section h1").remove();
+      var content = $("div.section").html();
+      $("div.section").remove();
+      $("div.slides").html(content);
+
+      Reveal.initialize({
+        width: 960,
+        height: 700,
+
+        margin: 0.1,
+
+        minScale: 0.2,
+        maxScale: 1.0,
+
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+
+        keyboard : true,
+        overview: true,
+        touch: true,
+        loop: false,
+        rtl: false,
+        fragments: true,
+
+        autoSlide: 0,
+        mouseWheel: false,
+        rollingLinks: true,
+        previewLinks: false,
+
+        transitionSpeed: "default",
+        backgroundTransition: "default",
+
+        theme: Reveal.getQueryHash().theme || "solarized", // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || "default", // default/cube/page/concave/zoom/linear/fade/none
+
+        dependencies: [
+        { src: '_static/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+        { src: '_static/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+        { src: '_static/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+        { src: '_static/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+        { src: '_static/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+        { src: '_static/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+      });
+    </script>
+  </body>
+</html>
