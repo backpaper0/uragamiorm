@@ -469,11 +469,13 @@ JavaのORM、Domaの話 +α
      やむを得ず動的にSQLを組み立てるための補助的なクラス。
    * `Date and Time API <https://jcp.org/en/jsr/detail?id=310>`_ への対応。
 
-.. revealjs:: 公式ドキュメント
+.. revealjs:: 公式ドキュメントなど
 
    Doma http://doma.readthedocs.org/
 
    ( Doma 1.x http://doma.seasar.org/ )
+
+   作者: `@nakamura_to <https://twitter.com/nakamura_to>`_ さん
 
 .. revealjs:: ☃
 
