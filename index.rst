@@ -4,6 +4,10 @@ JavaのORM、Domaの話 +α
 .. revealjs:: JavaのORM、Domaの話 +α
    :subtitle: @backpaper0
 
+   .. rv_small::
+
+      2014-06-14 `#uragamiorm <http://connpass.com/event/3583/>`_
+
 .. revealjs:: @backpaper0とは
 
    * うらがみです。
