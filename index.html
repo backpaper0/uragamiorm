@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 
 
@@ -100,7 +99,7 @@ public class Book {
 <section>
 <h2>JPAのクエリ</h2>
 <pre class="first last">
-<code data-trim contenteditable>Book book = em.createQuery("SELECT b.* FROM Book b WHERE b.isbn = :isbn", Book.class)
+<code data-trim contenteditable>Book book = em.createQuery("SELECT b FROM Book b WHERE b.isbn = :isbn", Book.class)
               .setParameter("isbn", "978-4-488-10118-3")
               .getSingleResult();</code></pre>
 </section>
@@ -121,11 +120,11 @@ public class Book_ {
 <h2>Criteria API</h2>
 <pre class="first last">
 <code data-trim contenteditable>CriteriaBuilder builder = em.getCriteriaBuilder();
-CriteriaQuery< Book> criteria = builder.createQuery(Book.class);
-Root< Book> from = criteria.from(Book.class);
-criteria.select(from);
-criteria.where(builder.equal(from.get(Book_.isbn), "978-4-488-10118-3"));
-Book book = em.createQuery(criteria).getSingleResult();</code></pre>
+CriteriaQuery< Book> q = builder.createQuery(Book.class);
+Root< Book> from = q.from(Book.class);
+q.select(from);
+q.where(builder.equal(from.get(Book_.isbn), "978-4-488-10118-3"));
+Book book = em.createQuery(q).getSingleResult();</code></pre>
 </section>
 </section>
 <section>

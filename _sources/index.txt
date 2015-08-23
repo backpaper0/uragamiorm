@@ -64,7 +64,7 @@ JavaのORM、Domaの話 +α
 
       .. rv_code::
 
-         Book book = em.createQuery("SELECT b.* FROM Book b WHERE b.isbn = :isbn", Book.class)
+         Book book = em.createQuery("SELECT b FROM Book b WHERE b.isbn = :isbn", Book.class)
                        .setParameter("isbn", "978-4-488-10118-3")
                        .getSingleResult();
 
@@ -87,11 +87,11 @@ JavaのORM、Domaの話 +α
       .. rv_code::
 
          CriteriaBuilder builder = em.getCriteriaBuilder();
-         CriteriaQuery< Book> criteria = builder.createQuery(Book.class);
-         Root< Book> from = criteria.from(Book.class);
-         criteria.select(from);
-         criteria.where(builder.equal(from.get(Book_.isbn), "978-4-488-10118-3"));
-         Book book = em.createQuery(criteria).getSingleResult();
+         CriteriaQuery< Book> q = builder.createQuery(Book.class);
+         Root< Book> from = q.from(Book.class);
+         q.select(from);
+         q.where(builder.equal(from.get(Book_.isbn), "978-4-488-10118-3"));
+         Book book = em.createQuery(q).getSingleResult();
 
 .. revealjs::
 
